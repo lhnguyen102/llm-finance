@@ -8,7 +8,7 @@ class NetworkConfig:
 
     model_type: str = "llama2_custom"
     dim: int = 288
-    n_layers: int = 6
+    n_layers: int = 7
     n_heads: int = 6
     n_kv_heads: Optional[int] = 6
     vocab_size: int = 32_000 + 1
@@ -33,7 +33,7 @@ class ModelConfig:
     """Model configuration"""
 
     out_dir: str = "out"
-    eval_interval: int = 2000
+    eval_interval: int = 1000
     log_interval: int = 1
     eval_iters: int = 100
     eval_only: bool = False
@@ -98,7 +98,7 @@ class FinetuningModelConfig:
     lr_decay_iters: int = max_iters
 
     # Lora config
-    lora_rank: int = 10
+    lora_rank: int = 8
     lora_alpha: int = 32
     lora_dropout: int = 0.1
 

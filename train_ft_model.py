@@ -8,6 +8,7 @@ from config import FinetuningModelConfig, NetworkConfig
 from finetune_dataset import batch_iterator
 from finetune_model import FinetuningModel
 from sentiment_finance.test import test_fpb
+from alpaca_finance.test import test_qna
 from tokenizer import Tokenizer
 
 
@@ -18,7 +19,7 @@ def main(dataset_name: str):
     torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
     torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
     print(f"Fine tuning model with using dataset {dataset_name}")
-    if dataset_name == "fingpt":
+    if dataset_name == "news":
         dataset = datasets.load_from_disk("./sentiment_finance/sen_dataset")
     elif dataset_name == "alpaca":
         dataset = datasets.load_from_disk("./alpaca_finance/alpaca_dataset")
@@ -57,15 +58,23 @@ def main(dataset_name: str):
     ft_model.train(dataloader, tokenizer_model)
 
 
-def benchmark() -> None:
+def benchmark(dataset_name: str) -> None:
     """Benchmark"""
     # Cuda setup
     torch.manual_seed(1337)
     torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
     torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 
+    print(f"Benchmarking fine-tuned model with using dataset {dataset_name}")
+    if dataset_name == "news":
+        dataset = datasets.load_from_disk("./sentiment_finance/sen_dataset")
+    elif dataset_name == "alpaca":
+        dataset = datasets.load_from_disk("./alpaca_finance/alpaca_dataset")
+    else:
+        raise ValueError(f"Invalid dataset: {dataset_name}")
+
     # Input
-    cfg = FinetuningModelConfig()
+    cfg = FinetuningModelConfig(dataset_name=dataset_name)
 
     # Model
     ft_model = FinetuningModel(cfg)
@@ -75,9 +84,10 @@ def benchmark() -> None:
     tokenizer_model = Tokenizer("tokenizer.model")
 
     # Benchmark
-    test_fpb(model=peft_net, tokenizer=tokenizer_model)
+    # test_fpb(model=peft_net, tokenizer=tokenizer_model)
+    test_qna(model=peft_net, tokenizer=tokenizer_model)
 
 
 if __name__ == "__main__":
     fire.Fire(main)
-    # benchmark()
+    # fire.Fire(benchmark)

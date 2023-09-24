@@ -30,8 +30,8 @@ def main():
 
     # Model
     model = LLAMAModel(cfg_model=cfg_model, cfg_net=cfg_net)
-    # model.train(dataloader)
-    model.sample()
+    model.train(dataloader)
+    # model.sample()
 
 
 if __name__ == "__main__":

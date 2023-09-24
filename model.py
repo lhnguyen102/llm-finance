@@ -251,7 +251,7 @@ class LLAMANet(nn.Module):
 
         # Register hook to freeze the gradient for padding_idx
         if self.tok_embeddings.padding_idx is not None:
-            self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
+            # self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
             self.padding_idx = self.tok_embeddings.padding_idx
             with torch.no_grad():
                 self.tok_embeddings.weight[self.tok_embeddings.padding_idx].fill_(0.0)

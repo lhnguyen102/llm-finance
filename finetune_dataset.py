@@ -13,14 +13,13 @@ def data_collator(
     """Form a batch of input and outputs for finetune model.
     This function will be an input of Pytorch dataloader"""
     max_len = max((len(feature["input_ids"]) + len(feature["labels"])) for feature in features)
-    max_len = min(max_len, pretrained_max_len)
 
     input_ids = []
     padded_labels = []
 
     for feature in features:
-        ids = feature["input_ids"][:max_len]
-        labels = feature["labels"][:max_len]
+        ids = feature["input_ids"]
+        labels = feature["labels"]
 
         # Add padding to labels
         tmp_labels = labels + [pad_token_id] * (max_len - len(labels))
@@ -28,6 +27,10 @@ def data_collator(
 
         # Add padding to inputs
         ids.extend([pad_token_id] * (max_len - len(ids)))
+
+        # Limit by max sequence length
+        tmp_labels = tmp_labels[:pretrained_max_len]
+        ids = ids[:pretrained_max_len]
 
         input_ids.append(torch.LongTensor(ids))
         padded_labels.append(torch.LongTensor(tmp_labels))

@@ -59,7 +59,7 @@ python train_base_model.py
 ### Fine-tuning Model
 For fine-tuning, we use HuggingFace's LoRA approach to extract layers but have implemented our own custom optimizer for our custom model. In the future, we plan to implement our minimal version for LoRA approach. Run the following command for fine-tuning model for sentiment analysis
 ```shell
-python train_ft_model.py fingpt
+python train_ft_model.py news
 ```
 
 Run the following command for fine-tuning model for questions and anwsers
