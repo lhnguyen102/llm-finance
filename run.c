@@ -16,6 +16,7 @@
 // ----------------------------------------------------------------------------
 // Transformer model
 
+const int VOCAB_SIZE_LLAMA_2 = 32000;
 typedef struct
 {
     int dim;        // transformer dimension
@@ -931,6 +932,10 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
         {
             break;
         }
+        if (next > VOCAB_SIZE_LLAMA_2 - 1)
+        {
+            continue;
+        }
 
         // print the token as string, decode it with the Tokenizer object
         char *piece = decode(tokenizer, token, next);
@@ -1198,7 +1203,7 @@ int main(int argc, char *argv[])
 
     // build the Tokenizer via the tokenizer .bin file
     Tokenizer tokenizer;
-    build_tokenizer(&tokenizer, tokenizer_path, transformer.config.vocab_size);
+    build_tokenizer(&tokenizer, tokenizer_path, VOCAB_SIZE_LLAMA_2);
 
     // build the Sampler
     Sampler sampler;

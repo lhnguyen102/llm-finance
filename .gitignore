@@ -2,3 +2,9 @@ __pycache__
 .DS_Store
 data/
 out/
+bu_model/
+model.bin
+*.jsonl
+*.json
+*.arrow
+*.bin

@@ -6,6 +6,7 @@ import time
 from contextlib import nullcontext
 from typing import Callable, Optional, Tuple
 
+import bitsandbytes as bnb
 import torch
 import torch.nn as nn
 
@@ -226,7 +227,7 @@ class LLAMANet(nn.Module):
         super().__init__()
         self.cfg = cfg
 
-        self.tok_embeddings = nn.Embedding(cfg.vocab_size, cfg.dim)
+        self.tok_embeddings = nn.Embedding(cfg.vocab_size, cfg.dim, padding_idx=32000)
         self.dropout = nn.Dropout(cfg.dropout)
         self.transformer_layers = torch.nn.ModuleList()
 
@@ -248,14 +249,24 @@ class LLAMANet(nn.Module):
         # Initalize the parameters
         self.apply(self._init_params)
 
+        # Register hook to freeze the gradient for padding_idx
+        if self.tok_embeddings.padding_idx is not None:
+            self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
+            self.padding_idx = self.tok_embeddings.padding_idx
+            with torch.no_grad():
+                self.tok_embeddings.weight[self.tok_embeddings.padding_idx].fill_(0.0)
+
         # Apply special scaled init to the residual projections, per GPT-2 paper
         for pn, p in self.named_parameters():
             if pn.endswith("w3.weight") or pn.endswith("wo.weight"):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * cfg.n_layers))
 
         # Initialize attribute for the loss of the last forward call.
-        # This will be set if the forward is called with a targets tensor.
         self.last_loss = None
+
+    def gradient_mask_hook(self, grad):
+        grad[self.padding_idx] = 0
+        return grad
 
     def _init_params(self, module: nn.Module) -> None:
         """Initialize weights and biases for network"""
@@ -268,6 +279,7 @@ class LLAMANet(nn.Module):
 
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         _, seq_len = tokens.shape
+        # self.tok_embeddings(torch.tensor([[32000]], device="cuda"))
         hidden = self.tok_embeddings(tokens)
         hidden = self.dropout(hidden)
         freqs_cos = self.freqs_cos[:seq_len]
@@ -281,7 +293,9 @@ class LLAMANet(nn.Module):
         if targets is not None:
             logits = self.output(hidden)
             self.last_loss = nn.functional.cross_entropy(
-                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1
+                logits.view(-1, logits.size(-1)),
+                targets.view(-1),
+                ignore_index=self.cfg.loss_ignore_index,
             )
         else:
             logits = self.output(hidden[:, [-1], :])
@@ -297,7 +311,9 @@ class LLAMANet(nn.Module):
 
         for _ in range(max_new_tokens):
             # Crop the token inputs beyond the token limits
-            idx_cond = idx if idx.size(1) <= self.cfg.max_seq_len else idx[:, -self.cfg.max_seq_len]
+            idx_cond = (
+                idx if idx.size(1) <= self.cfg.max_seq_len else idx[:, -self.cfg.max_seq_len :]
+            )
 
             # Get the logits for the final step only
             logits = self(idx_cond)
@@ -322,6 +338,30 @@ class LLAMANet(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
+
+    @torch.inference_mode()
+    def compute_probs(self, idx: torch.Tensor, temperature=1.0, top_k=None) -> torch.Tensor:
+        """Compute the probabilies for each token in vocab given the input tokens"""
+        # Crop the token inputs beyond the token limits
+        idx_cond = idx if idx.size(1) <= self.cfg.max_seq_len else idx[:, -self.cfg.max_seq_len :]
+
+        # Get the logits for the final step only
+        logits = self(idx_cond)
+        logits = logits[:, -1, :]
+
+        if temperature != 0.0:
+            # Apply temperature to logits in order to expand the uncertainty band
+            logits = logits / temperature
+
+            # optionally crop the logits to only the top k options
+            if top_k is not None:
+                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                logits[logits < v[:, [-1]]] = -float("Inf")
+
+        # Probabilities for each token in vocab
+        probs = nn.functional.softmax(logits, dim=-1)
+
+        return probs
 
 
 class LLAMAModel:
@@ -352,26 +392,29 @@ class LLAMAModel:
             self.llama_net = LLAMANet(self.cfg_net)
             iter_num = 0
             best_val_loss = 1e9
+            optimizer_dict = None
             self.llama_net.to(self.cfg_model.device)
         elif self.cfg_model.init_from == "resume":
             print(f"Resuming training from {self.cfg_model.out_dir}")
             # Load data from checkpoint
             ckpt_path = os.path.join(self.cfg_model.out_dir, "ckpt.pt")
-            self.load_model(ckpt_path)
+            iter_num, best_val_loss, optimizer_dict = self.load_model(ckpt_path)
 
-        return iter_num, best_val_loss
+        return iter_num, best_val_loss, optimizer_dict
 
     def train(self, dataloader: Callable) -> None:
         """Traing step"""
 
         # Initialize model
-        iter_num, best_val_loss = self._init_model()
+        iter_num, best_val_loss, optimizer_dict = self._init_model()
 
         # Training dataloader
         train_dataloader = dataloader(split="train")
 
         # Get optimizer
         optimizer = self._get_optimizer()
+        if optimizer_dict is not None:
+            optimizer.load_state_dict(optimizer_dict)
 
         # Fetch the very first batch
         X, Y = next(train_dataloader)
@@ -380,7 +423,6 @@ class LLAMAModel:
         scaler = torch.cuda.amp.GradScaler(enabled=(self.cfg_model.dtype == "float16"))
 
         local_iter_num = 0
-        running_mfu = -1.0
         time_start = time.perf_counter()
         while True:
             if iter_num % self.cfg_model.eval_interval == 0:
@@ -410,7 +452,7 @@ class LLAMAModel:
 
             for _ in range(self.cfg_model.gradient_accumulation_steps):
                 with self.ctx:
-                    logits = self.llama_net(X, Y)
+                    _ = self.llama_net(X, Y)
                     loss = self.llama_net.last_loss
                     loss = loss / self.cfg_model.gradient_accumulation_steps
 
@@ -440,19 +482,12 @@ class LLAMAModel:
             if iter_num % self.cfg_model.log_interval == 0:
                 # Get loss as float, scale up due to the divide above. note: this is a CPU-GPU sync point
                 lossf = loss.item() * self.cfg_model.gradient_accumulation_steps
-                if local_iter_num >= 5:  # let the training loop settle a bit
-                    mfu = self.estimate_mfu(
-                        self.cfg_model.batch_size * self.cfg_model.gradient_accumulation_steps, dt
-                    )
-                    running_mfu = mfu if running_mfu == -1.0 else 0.9 * running_mfu + 0.1 * mfu
-                print(
-                    f"{iter_num} | loss {lossf:.4f} | lr {lr:e} | {dt*1000:.2f}ms | mfu {running_mfu*100:.2f}%"
-                )
+                print(f"{iter_num} | loss {lossf:.4f} | lr {lr:e} | {dt*1000:.2f}ms")
 
             iter_num += 1
             local_iter_num += 1
 
-            # termination conditions
+            # Termination conditions
             if iter_num > self.cfg_model.max_iters:
                 break
 
@@ -462,15 +497,15 @@ class LLAMAModel:
         ckpt_path = os.path.join(self.cfg_model.out_dir, "ckpt.pt")
         self.load_model(ckpt_path)
         start = ""
-        # self.model_export(
-        #     model=self.llama_net, filepath=os.path.join(self.cfg_model.out_dir, "model.bin")
-        # )
+        self.model_export(
+            model=self.llama_net, filepath=os.path.join(self.cfg_model.out_dir, "model.bin")
+        )
 
         # Load the tokenizer
         vocab_source = self.cfg_model.vocab_source
         vocab_size = self.cfg_net.vocab_size
 
-        # Let's try to find the tokenizer model automatically. bit gross here...
+        # Let's try to find the tokenizer model automatically
         query_vocab_size = 0 if vocab_source == "llama2" else vocab_size
         tokenizer_model = get_tokenizer_model_path(vocab_size=query_vocab_size)
         enc = Tokenizer(tokenizer_model=tokenizer_model)
@@ -486,7 +521,7 @@ class LLAMAModel:
         with torch.no_grad():
             with self.ctx:
                 for k in range(1):
-                    y = self.llama_net.generate(x, 100, temperature=1.0, top_k=300)
+                    y = self.llama_net.generate(x, 256, temperature=1.4, top_k=1000)
                     print(enc.decode(y[0].tolist()))
                     print("---------------")
 
@@ -534,16 +569,21 @@ class LLAMAModel:
         )
 
         # Select optimizer
-        fused_avail = "fused" in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_avail and self.cfg_model.device == "cuda"
-        extra_args = dict(fused=True) if use_fused else dict()
-        optimizer = torch.optim.AdamW(
+        optimizer = bnb.optim.Adam8bit(
             optim_groups,
             lr=self.cfg_model.learning_rate,
             betas=(self.cfg_model.beta1, self.cfg_model.beta2),
-            **extra_args,
         )
-        print(f"using fused AdamW: {use_fused}")
+        # fused_avail = "fused" in inspect.signature(torch.optim.AdamW).parameters
+        # use_fused = fused_avail and self.cfg_model.device == "cuda"
+        # extra_args = dict(fused=True) if use_fused else dict()
+        # optimizer = torch.optim.AdamW(
+        #     optim_groups,
+        #     lr=self.cfg_model.learning_rate,
+        #     betas=(self.cfg_model.beta1, self.cfg_model.beta2),
+        #     **extra_args,
+        # )
+        # print(f"using fused AdamW: {use_fused}")
 
         return optimizer
 
@@ -600,11 +640,12 @@ class LLAMAModel:
         print(f"saving checkpoint to {self.cfg_model.out_dir}")
         torch.save(checkpoint, os.path.join(self.cfg_model.out_dir, "ckpt.pt"))
 
-    def load_model(self, ckpt_path: str = "./out/ckpt.pt") -> Tuple[int, float]:
+    def load_model(self, ckpt_path: str = "./out/ckpt.pt") -> Tuple[int, float, dict]:
         """Load model checkpoint"""
         checkpoint = torch.load(ckpt_path, map_location=self.cfg_model.device)
         checkpoint_model_args = checkpoint["cfg_net"]
         state_dict = checkpoint["model"]
+        optimizer_dict = checkpoint["optimizer"]
         iter_num = checkpoint["iter_num"]
         best_val_loss = checkpoint["best_val_loss"]
 
@@ -615,66 +656,7 @@ class LLAMAModel:
 
         self.llama_net.to(self.cfg_model.device)
 
-        return iter_num, best_val_loss
-
-    # @staticmethod
-    # def model_export(model: LLAMANet, filepath: str):
-    #     """
-    #     Export the model weights in full float32 .bin file to be read from C.
-    #     This is same as legacy_export, but with a proper header.
-    #     """
-    #     version = 1
-
-    #     out_file = open(filepath, "wb")
-    #     # first write out the header. the header will be 256 bytes
-    #     # 1) write magic, which will be uint32 of "ak42" in ASCII
-    #     out_file.write(struct.pack("I", 0x616B3432))
-    #     # 2) write version, which will be int
-    #     out_file.write(struct.pack("i", version))
-    #     # 3) write the params, which will be 7 ints
-    #     p = model.cfg
-    #     hidden_dim = model.transformer_layers[0].mlp.fc_11.weight.shape[0]
-    #     n_kv_heads = p.n_heads if p.n_kv_heads is None else p.n_kv_heads
-    #     header = struct.pack(
-    #         "iiiiiii",
-    #         p.dim,
-    #         hidden_dim,
-    #         p.n_layers,
-    #         p.n_heads,
-    #         n_kv_heads,
-    #         p.vocab_size,
-    #         p.max_seq_len,
-    #     )
-    #     out_file.write(header)
-    #     # 4) write some other flags
-    #     shared_classifier = torch.equal(model.tok_embeddings.weight, model.output.weight)
-    #     out_file.write(struct.pack("B", int(shared_classifier)))
-    #     pad = 256 - out_file.tell()  # pad rest with zeros; tell returns current pos
-    #     assert pad >= 0
-    #     out_file.write(b"\0" * pad)
-
-    #     # now let's write out all the params
-    #     weights = [
-    #         *[layer.attn_norm.weight for layer in model.transformer_layers],
-    #         *[layer.mlp_norm.weight for layer in model.transformer_layers],
-    #         model.norm.weight,
-    #         model.tok_embeddings.weight,
-    #         *[layer.attn.query.weight for layer in model.transformer_layers],
-    #         *[layer.attn.key.weight for layer in model.transformer_layers],
-    #         *[layer.attn.value.weight for layer in model.transformer_layers],
-    #         *[layer.attn.output_proj.weight for layer in model.transformer_layers],
-    #         *[layer.mlp.fc_11.weight for layer in model.transformer_layers],
-    #         *[layer.mlp.fc_2.weight for layer in model.transformer_layers],
-    #         *[layer.mlp.fc_12.weight for layer in model.transformer_layers],
-    #     ]
-    #     if not shared_classifier:
-    #         weights.append(model.output.weight)
-    #     for w in weights:
-    #         serialize_fp32(out_file, w)
-
-    #     # write to binary file
-    #     out_file.close()
-    #     print(f"wrote {filepath}")
+        return iter_num, best_val_loss, optimizer_dict
 
     @staticmethod
     def model_export(model: LLAMANet, filepath: str):
