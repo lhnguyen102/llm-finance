@@ -8,7 +8,7 @@ This project is solely for educational and learning purposes, focusing on guidin
 - [ ] **User Interface (WIP)**: An interactive platform to test the model on sentiment analysis and QnA tasks.
 
 
-The code for training based model are mostly from the repository [llama2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. Here are some main modifications
+The code for training based model are mostly from the repository [llama2.c](https://github.com/karpathy/llama2.c) by Andrej Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. Here are some main modifications
 - Restructured the training code
 - Integrated the [8bit optimizer library](https://github.com/TimDettmers/bitsandbytes) for faster base model training
 - Made updates to deal with padding in input and output (not quite optimal yet)
@@ -65,7 +65,7 @@ python -m sentiment_finance.make_dataset
 ```
 
 ### Alpaca for Question and Answer
-- Download the data `Cleaned_date.json` from [Hugging Face ](https://huggingface.co/datasets/gbharti/finance-alpaca/tree/main).
+- Download the data `Cleaned_date.json` from [Hugging Face](https://huggingface.co/datasets/gbharti/finance-alpaca/tree/main).
 - Save it the folder `alpaca_finance/data`.
 - Then, run the following command to preporcess the raw data in the base model input format.
     ```shell
