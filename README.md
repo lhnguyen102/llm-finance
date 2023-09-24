@@ -1,5 +1,5 @@
 # llm-finance
-This project is solely for educational and learning purposes, focusing on guiding developers on how to build an LLM model from scratch and then fine-tune it for different tasks. To make a great model, we need to know how every part works and how it uses data. Making this project taught me a lot about that.  In this repository, you will find tools and materials to:
+This project is only for educational and learning purposes, focusing on guiding developers on how to build an LLM model from scratch and then fine-tune it for different tasks. To make a great model, we need to know how every part works and how it uses data. Making this project taught me a lot about that.  In this repository, you will find tools and materials to:
 
 - [x] **Build a core LLM**: Train a foundational language model to understand text
 - [x] **Sentiment Analysis Adaptation**: Fine-tune the base LLM to interpret and analyze sentiments in texts.
