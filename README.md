@@ -8,7 +8,12 @@ This project is solely for educational and learning purposes, focusing on guidin
 - [ ] **User Interface (WIP)**: An interactive platform to test the model on sentiment analysis and QnA tasks.
 
 
-The code for training based model are mostly from the repository [llma2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. I've restructured the code and integrated the [8bit optimizer library](https://github.com/TimDettmers/bitsandbytes) for faster base model training. All models, from base to fine-tuned, are built from scratch, so you can see how each part works.
+The code for training based model are mostly from the repository [llma2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. Here are some main modifications
+- Restructured the training code
+- Integrated the [8bit optimizer library](https://github.com/TimDettmers/bitsandbytes) for faster base model training
+- Made updates to deal with padding in input and output (not quite optimal yet)
+
+All models, from base to fine-tuned, are built from scratch, so you can see how each part works.
 
 ## Directory Structure
 ```shell
