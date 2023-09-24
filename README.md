@@ -72,8 +72,23 @@ python -m sentiment_finance.make_dataset
 ### Base Model
 Run the follow command to train the base model
 ```shell
-python train_base_model.py
+python train_base_model.py training
 ```
+
+Run the follow command to test the base model
+```shell
+python train_base_model.py test
+```
+
+In order to test the base model in C, you need first to compule the C code by running the following command
+```shell
+gcc -o run run.c -lm
+```
+then 
+```shell
+./run out/model.bin
+```
+NOTE: you can also use the Makefile to compile the C code if preferred.
 
 ### Fine-tuning Model
 For fine-tuning, we use HuggingFace's LoRA approach to extract layers but have implemented our own custom optimizer for our custom model. In the future, we plan to implement our minimal version for LoRA approach. Run the following command for fine-tuning model for sentiment analysis

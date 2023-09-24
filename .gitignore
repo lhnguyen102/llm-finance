@@ -8,3 +8,5 @@ model.bin
 *.json
 *.arrow
 *.bin
+# C binary output
+run
