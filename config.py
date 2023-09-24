@@ -8,7 +8,7 @@ class NetworkConfig:
 
     model_type: str = "llama2_custom"
     dim: int = 288
-    n_layers: int = 7
+    n_layers: int = 6
     n_heads: int = 6
     n_kv_heads: Optional[int] = 6
     vocab_size: int = 32_000 + 1
@@ -16,7 +16,7 @@ class NetworkConfig:
     multiple_of: int = 256
     norm_eps: float = 1e-5
     max_seq_len: int = 256
-    dropout: float = 0.1
+    dropout: float = 0.05
     padding_idx: int = 32000
     loss_ignore_index: int = -100
 
@@ -42,8 +42,8 @@ class ModelConfig:
 
     batch_size: int = 32
     vocab_source: str = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-    gradient_accumulation_steps: float = 8
-    learning_rate: float = 3e-4
+    gradient_accumulation_steps: float = 12
+    learning_rate: float = 5.5e-4
     min_lr: float = 0.0
     max_iters: int = 100_000
     weight_decay: float = 1e-1
