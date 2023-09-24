@@ -13,7 +13,7 @@ The code for training based model are mostly from the repository [llma2.c](https
 ## Directory Structure
 ```shell
 .
-├── alpaca_finance      # Preprocess Alphaca's QnA dataset
+├── alpaca_finance      # Preprocess Alpaca's QnA dataset
 ├── config.py           # Configuration for model and network
 ├── finetune_dataset.py # Dataset and dataloader for the fine-tuning task
 ├── finetune_model.py   # Fine-tuning model
