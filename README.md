@@ -107,7 +107,7 @@ python train_ft_model.py alpaca
 ```
 
 ## Model Testing
-Comming soon...
+Coming soon...
 ## Acknowledgement
 ### Dataset
 
