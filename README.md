@@ -6,7 +6,7 @@ This project is solely for educational and learning purposes, focusing on guidin
 - [x] **Financial QnA Adaptation**: Adjust the LLM to address question and answer tasks specifically tailored for the financial sector.
 - [ ] **Performance Benchmarks (WIP)**: Evaluate the model's effectiveness in sentiment analysis and QnA tasks.
 - [ ] **User Interface (WIP)**: An interactive platform to test the model on sentiment analysis and QnA tasks.
-a
+
 
 The code for training based model are mostly from [llma2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners.
 
