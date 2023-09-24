@@ -1,4 +1,6 @@
-/* Inference for Llama-2 Transformer model in pure C */
+/* Inference for Llama-2 Transformer model in pure C
+Copyright (c) 2023, Andreij Kaparthy.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>

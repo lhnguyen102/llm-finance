@@ -1,4 +1,5 @@
-# choose your compiler, e.g. gcc/clang
+#Copyright (c) 2023, Andreij Kaparthy. 
+#choose your compiler, e.g. gcc/clang
 # example override to clang: make run CC=clang
 CC = gcc
 

@@ -8,7 +8,26 @@ This project is solely for educational and learning purposes, focusing on guidin
 - [ ] **User Interface (WIP)**: An interactive platform to test the model on sentiment analysis and QnA tasks.
 
 
-The code for training based model are mostly from [llma2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners.
+The code for training based model are mostly from the repository [llma2.c](https://github.com/karpathy/llama2.c) by Andreij Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. I've restructured the code and integrated the [8bit optimizer library](https://github.com/TimDettmers/bitsandbytes) for faster base model training. All models, from base to fine-tuned, are built from scratch, so you can see how each part works.
+
+## Directory Structure
+```shell
+.
+├── alpaca_finance      # Proprocess Alphaca's QnA dataset
+├── config.py           # Configuration for model and network
+├── finetune_dataset.py # Dataset and dataloader for the fine-tuning task
+├── finetune_model.py   # Fine-tuning model
+├── Makefile            # Compiling instruction for C code
+├── model.py            # Base model
+├── run.c               # C code for forward pass
+├── sentiment_finance   # Preprocess the news data for sentiment analyis
+├── tinystories.py      # Tiny Stories to train base model
+├── tokenizer.bin       # Vocabulary encoder-decoder in binary (C code)
+├── tokenizer.model     # Vocabulary encoder-decoder (python code)
+├── tokenizer.py        # Script for encodeing and decoding text and token IDs
+├── train_base_model.py # Training runner for the base model
+└── train_ft_model.py   # Training runner for the fine-tuning model
+```
 
 ## Installation
 ### Create Miniconda Environment

@@ -1,4 +1,5 @@
 """
+Copyright (c) 2023, Andreij Kaparthy.
 Download, preprocess and serve the TinyStories dataset as a DataLoader.
 """
 
