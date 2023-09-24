@@ -75,12 +75,12 @@ python -m sentiment_finance.make_dataset
 ## Model Training
 
 ### Base Model
-Run the follow command to train the base model
+Run the following command to train the base model
 ```shell
 python train_base_model.py training
 ```
 
-Run the follow command to test the base model
+After training, run the following command to test the base model
 ```shell
 python train_base_model.py test
 ```
