@@ -29,7 +29,7 @@ All models, from base to fine-tuned, are built from scratch, so you can see how 
 ├── tinystories.py      # Tiny Stories to train base model
 ├── tokenizer.bin       # Vocabulary encoder-decoder in binary (C code)
 ├── tokenizer.model     # Vocabulary encoder-decoder (python code)
-├── tokenizer.py        # Script for encodeing and decoding text and token IDs
+├── tokenizer.py        # Script for encoding and decoding text and token IDs
 ├── train_base_model.py # Training runner for the base model
 └── train_ft_model.py   # Training runner for the fine-tuning model
 ```
@@ -114,4 +114,8 @@ Coming soon...
 - [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories): Provided the data for training the base model
 - [FINGPT](https://github.com/AI4Finance-Foundation/FinGPT): Provided the data for the sentiment analysis
 - [Gaurang Bharti](https://huggingface.co/datasets/gbharti/finance-alpaca): Put together data from [Standford's Alpaca](https://github.com/tatsu-lab/stanford_alpaca) and [FiQA](https://sites.google.com/view/fiqa/) for question and answer finetuning
+
+### Code
+
+- [Jonathan Chang](https://github.com/cccntu): Provided the minimal implementation of LoRA approach
 

@@ -78,7 +78,7 @@ def benchmark(dataset_name: str) -> None:
 
     # Model
     ft_model = FinetuningModel(cfg)
-    peft_net = ft_model.load_adapter_model()
+    peft_net = ft_model.load_custom_adapter_model()
 
     # Tokenizer
     tokenizer_model = Tokenizer("tokenizer.model")
@@ -89,5 +89,5 @@ def benchmark(dataset_name: str) -> None:
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
-    # fire.Fire(benchmark)
+    # fire.Fire(main)
+    fire.Fire(benchmark)

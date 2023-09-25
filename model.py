@@ -258,7 +258,7 @@ class LLAMANet(nn.Module):
 
         # Apply special scaled init to the residual projections, per GPT-2 paper
         for pn, p in self.named_parameters():
-            if pn.endswith("w3.weight") or pn.endswith("wo.weight"):
+            if pn.endswith("fc_12.weight") or pn.endswith("output_proj.weight"):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * cfg.n_layers))
 
         # Initialize attribute for the loss of the last forward call.
@@ -569,21 +569,22 @@ class LLAMAModel:
         )
 
         # Select optimizer
-        optimizer = bnb.optim.Adam8bit(
-            optim_groups,
-            lr=self.cfg_model.learning_rate,
-            betas=(self.cfg_model.beta1, self.cfg_model.beta2),
-        )
-        # fused_avail = "fused" in inspect.signature(torch.optim.AdamW).parameters
-        # use_fused = fused_avail and self.cfg_model.device == "cuda"
-        # extra_args = dict(fused=True) if use_fused else dict()
-        # optimizer = torch.optim.AdamW(
-        #     optim_groups,
-        #     lr=self.cfg_model.learning_rate,
-        #     betas=(self.cfg_model.beta1, self.cfg_model.beta2),
-        #     **extra_args,
-        # )
-        # print(f"using fused AdamW: {use_fused}")
+        if self.cfg_model.optim_method:
+            optimizer = bnb.optim.Adam8bit(
+                optim_groups,
+                lr=self.cfg_model.learning_rate,
+                betas=(self.cfg_model.beta1, self.cfg_model.beta2),
+            )
+        else:
+            fused_avail = "fused" in inspect.signature(torch.optim.AdamW).parameters
+            use_fused = fused_avail and self.cfg_model.device == "cuda"
+            extra_args = dict(fused=True) if use_fused else dict()
+            optimizer = torch.optim.AdamW(
+                optim_groups,
+                lr=self.cfg_model.learning_rate,
+                betas=(self.cfg_model.beta1, self.cfg_model.beta2),
+                **extra_args,
+            )
 
         return optimizer
 

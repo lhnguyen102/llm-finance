@@ -7,7 +7,7 @@ class NetworkConfig:
     """Network properties for Llama 7B model"""
 
     model_type: str = "llama2_custom"
-    dim: int = 288
+    dim: int = 300
     n_layers: int = 6
     n_heads: int = 6
     n_kv_heads: Optional[int] = 6
@@ -16,7 +16,7 @@ class NetworkConfig:
     multiple_of: int = 256
     norm_eps: float = 1e-5
     max_seq_len: int = 256
-    dropout: float = 0.05
+    dropout: float = 0.0
     padding_idx: int = 32000
     loss_ignore_index: int = -100
 
@@ -43,7 +43,7 @@ class ModelConfig:
     batch_size: int = 32
     vocab_source: str = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
     gradient_accumulation_steps: float = 12
-    learning_rate: float = 5.5e-4
+    learning_rate: float = 7e-4
     min_lr: float = 0.0
     max_iters: int = 100_000
     weight_decay: float = 1e-1
@@ -57,6 +57,7 @@ class ModelConfig:
     compile: bool = True
     ddp: bool = False
     lr_decay_iters: int = max_iters
+    optim_method: str = "8bit"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -81,11 +82,11 @@ class FinetuningModelConfig:
 
     batch_size: int = 32
     vocab_source: str = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-    gradient_accumulation_steps: float = 16
+    gradient_accumulation_steps: float = 8
     learning_rate: float = 5e-4
     min_lr: float = 0.0
     max_iters: int = 100_000
-    weight_decay: float = 1e-2
+    weight_decay: float = 1e-1
     beta1: float = 0.9
     beta2: float = 0.95
     grad_clip: float = 1.0
@@ -96,11 +97,13 @@ class FinetuningModelConfig:
     compile: bool = True
     ddp: bool = False
     lr_decay_iters: int = max_iters
+    optim_method: str = "8bit"
 
     # Lora config
-    lora_rank: int = 8
-    lora_alpha: int = 32
+    lora_rank: int = 4
+    lora_alpha: int = 1.0
     lora_dropout: int = 0.1
+    lora_tie_embedding_weights: bool = True
 
     def to_dict(self) -> dict:
         return asdict(self)
