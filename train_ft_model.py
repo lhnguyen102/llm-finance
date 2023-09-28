@@ -89,5 +89,5 @@ def benchmark(dataset_name: str) -> None:
 
 
 if __name__ == "__main__":
-    # fire.Fire(main)
-    fire.Fire(benchmark)
+    fire.Fire(main)
+    # fire.Fire(benchmark)

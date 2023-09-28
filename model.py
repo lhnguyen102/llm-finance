@@ -175,8 +175,7 @@ class MLPBlock(nn.Module):
 
     def __init__(self, cfg: NetworkConfig) -> None:
         super().__init__()
-        hidden_dim = cfg.dim
-        if hidden_dim is None:
+        if cfg.hidden_dim is None:
             hidden_dim = 4 * cfg.dim
             hidden_dim = int(2 * hidden_dim / 3)
             hidden_dim = cfg.multiple_of * ((hidden_dim + cfg.multiple_of - 1) // cfg.multiple_of)
@@ -521,7 +520,7 @@ class LLAMAModel:
         with torch.no_grad():
             with self.ctx:
                 for k in range(1):
-                    y = self.llama_net.generate(x, 256, temperature=1.4, top_k=1000)
+                    y = self.llama_net.generate(x, 128, temperature=1.0, top_k=300)
                     print(enc.decode(y[0].tolist()))
                     print("---------------")
 

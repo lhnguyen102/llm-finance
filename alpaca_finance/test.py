@@ -16,15 +16,13 @@ def test_qna(model, tokenizer, batch_size=1):
     ptdtype = torch.float16
     ctx = (nullcontext(), torch.amp.autocast(device_type=device_type, dtype=ptdtype))
 
-    context = (
-        "Instruction: For a car, what scams can be plotted with 0% financing vs rebate?\nAnswer: "
-    )
+    context = "Instruction: Where should I be investing my money?\nAnswer: "
 
     prompt_ids = tokenizer.encode(context, bos=False, eos=False)
     prompt_ids = torch.tensor([prompt_ids], dtype=torch.long).to("cuda")
 
     with torch.no_grad():
-        res = model.generate(prompt_ids, max_new_tokens=300, temperature=1.4, top_k=300)
+        res = model.generate(prompt_ids, max_new_tokens=300, temperature=1, top_k=1000)
     res_sentences = [tokenizer.decode(i) for i in res.tolist()]
     breakpoint()
     out_text = [o.split("Answer: ")[1] for o in res_sentences]
