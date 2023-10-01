@@ -226,7 +226,9 @@ class LLAMANet(nn.Module):
         super().__init__()
         self.cfg = cfg
 
-        self.tok_embeddings = nn.Embedding(cfg.vocab_size, cfg.dim, padding_idx=32000)
+        self.tok_embeddings = nn.Embedding(
+            cfg.vocab_size, cfg.dim, padding_idx=self.cfg.padding_idx
+        )
         self.dropout = nn.Dropout(cfg.dropout)
         self.transformer_layers = torch.nn.ModuleList()
 
@@ -237,8 +239,8 @@ class LLAMANet(nn.Module):
         self.output = nn.Linear(cfg.dim, cfg.vocab_size, bias=False)
 
         # Share the unembedding parameters with the embedding parameters
-        # https://paperswithcode.com/method/weight-tying
-        self.tok_embeddings.weight = self.output.weight
+        # # https://paperswithcode.com/method/weight-tying
+        # self.tok_embeddings.weight = self.output.weight
 
         # Positional embeddings
         freqs_cos, freqs_sin = precompute_freqs_cis(cfg.dim // cfg.n_heads, cfg.max_seq_len)
@@ -250,7 +252,7 @@ class LLAMANet(nn.Module):
 
         # Register hook to freeze the gradient for padding_idx
         if self.tok_embeddings.padding_idx is not None:
-            self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
+            # self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
             self.padding_idx = self.tok_embeddings.padding_idx
             with torch.no_grad():
                 self.tok_embeddings.weight[self.tok_embeddings.padding_idx].fill_(0.0)

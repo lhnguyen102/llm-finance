@@ -12,7 +12,7 @@ from alpaca_finance.test import test_qna
 from tokenizer import Tokenizer
 
 
-def main(dataset_name: str):
+def train(dataset_name: str):
     """Finetuning API"""
     # Cuda setup
     torch.manual_seed(1337)
@@ -66,12 +66,6 @@ def benchmark(dataset_name: str) -> None:
     torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 
     print(f"Benchmarking fine-tuned model with using dataset {dataset_name}")
-    if dataset_name == "news":
-        dataset = datasets.load_from_disk("./sentiment_finance/sen_dataset")
-    elif dataset_name == "alpaca":
-        dataset = datasets.load_from_disk("./alpaca_finance/alpaca_dataset")
-    else:
-        raise ValueError(f"Invalid dataset: {dataset_name}")
 
     # Input
     cfg = FinetuningModelConfig(dataset_name=dataset_name)
@@ -84,10 +78,24 @@ def benchmark(dataset_name: str) -> None:
     tokenizer_model = Tokenizer("tokenizer.model")
 
     # Benchmark
-    # test_fpb(model=peft_net, tokenizer=tokenizer_model)
-    test_qna(model=peft_net, tokenizer=tokenizer_model)
+    if dataset_name == "news":
+        test_fpb(model=peft_net, tokenizer=tokenizer_model)
+    elif dataset_name == "alpaca":
+        test_qna(model=peft_net, tokenizer=tokenizer_model)
+    else:
+        raise ValueError(f"Invalid dataset: {dataset_name}")
+
+
+def main(task: str, dataset_name: str) -> None:
+    """API interface"""
+
+    if task == "training":
+        train(dataset_name=dataset_name)
+    elif task == "test":
+        benchmark(dataset_name=dataset_name)
+    else:
+        raise ValueError(f"Invalid task: {task}")
 
 
 if __name__ == "__main__":
     fire.Fire(main)
-    # fire.Fire(benchmark)

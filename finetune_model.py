@@ -82,7 +82,6 @@ class FinetuningModel:
 
         # self.peft_net = self.get_lora_finetune_model()
         self.peft_net = self.get_custom_lora_finetune_model()
-        # self.peft_net = self.load_adapter_model()
 
     def train(self, dataloader: Dict[str, Iterator], tokenizer) -> None:
         """Finetune the model"""
@@ -112,6 +111,7 @@ class FinetuningModel:
                     best_val_loss = losses["val"]
                     if iter_num > 0:
                         self.save_adapter_model()
+                        # self.save_model()
 
             # Learning rate decaying
             lr = self.get_lr(iter_num) if self.cfg.decay_lr else self.cfg.learning_rate
@@ -273,7 +273,7 @@ class FinetuningModel:
 
     def get_lora_finetune_model(self) -> PeftModel:
         """Get LoRA finetuning model using Huggingface's library"""
-        # Load pretrain model
+        # Load pretrained model
         pretrained_net = self.load_pretrained_network()
 
         # Pretrained model
@@ -294,6 +294,41 @@ class FinetuningModel:
         )
         peft_net = get_peft_model(pretrained_net, lora_config)
         self.print_trainable_parameters(peft_net)
+
+        return peft_net
+
+    def load_adapter_model(self) -> None:
+        """Load adapter model using Huggingface's library"""
+        # Load pretrain model
+        pretrained_net = self.load_pretrained_network()
+
+        # Pretrained model
+        target_modules = [
+            n
+            for n, _ in pretrained_net.named_modules()
+            if any(x in n for x in ("query", "value", "fc"))
+        ]
+
+        # LoRA config
+        lora_config = LoraConfig(
+            inference_mode=False,
+            r=self.cfg.lora_rank,
+            lora_alpha=self.cfg.lora_alpha,
+            lora_dropout=self.cfg.lora_dropout,
+            target_modules=target_modules,
+            bias="none",
+        )
+        peft_net = get_peft_model(pretrained_net, lora_config)
+        peft_saved_params = torch.load(
+            os.path.join(self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"),
+            map_location=self.cfg.device,
+        )
+
+        # Load adapter parameter
+        with torch.no_grad():
+            for name, param in peft_net.named_parameters():
+                if name in peft_saved_params:
+                    param.copy_(peft_saved_params[name])
 
         return peft_net
 
@@ -331,41 +366,6 @@ class FinetuningModel:
                     param.copy_(peft_saved_params[name])
 
         return pretrained_net.to(self.cfg.device)
-
-    def load_adapter_model(self) -> None:
-        """Load adapter model using Huggingface's library"""
-        # Load pretrain model
-        pretrained_net = self.load_pretrained_network()
-
-        # Pretrained model
-        target_modules = [
-            n
-            for n, _ in pretrained_net.named_modules()
-            if any(x in n for x in ("query", "value", "fc"))
-        ]
-
-        # LoRA config
-        lora_config = LoraConfig(
-            inference_mode=False,
-            r=self.cfg.lora_rank,
-            lora_alpha=self.cfg.lora_alpha,
-            lora_dropout=self.cfg.lora_dropout,
-            target_modules=target_modules,
-            bias="none",
-        )
-        peft_net = get_peft_model(pretrained_net, lora_config)
-        peft_saved_params = torch.load(
-            os.path.join(self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"),
-            map_location=self.cfg.device,
-        )
-
-        # Load adapter parameter
-        with torch.no_grad():
-            for name, param in peft_net.named_parameters():
-                if name in peft_saved_params:
-                    param.copy_(peft_saved_params[name])
-
-        return peft_net
 
     def get_custom_lora_finetune_model(self) -> LLAMANet:
         """Get the finetune model using LoRA's custom implementation"""

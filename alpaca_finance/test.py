@@ -22,9 +22,8 @@ def test_qna(model, tokenizer, batch_size=1):
     prompt_ids = torch.tensor([prompt_ids], dtype=torch.long).to("cuda")
 
     with torch.no_grad():
-        res = model.generate(prompt_ids, max_new_tokens=300, temperature=1, top_k=1000)
+        res = model.generate(prompt_ids, max_new_tokens=300, temperature=1.0, top_k=300)
     res_sentences = [tokenizer.decode(i) for i in res.tolist()]
-    breakpoint()
     out_text = [o.split("Answer: ")[1] for o in res_sentences]
     out_text_list += out_text
     torch.cuda.empty_cache()

@@ -74,16 +74,19 @@ def test_fpb(model, tokenizer, batch_size=1, prompt_fun=None):
     out_text_list = []
     for i in tqdm(range(total_steps)):
         tmp_context = context[i * batch_size : (i + 1) * batch_size]
+        tmp_context = [
+            "Instruction: What is the sentiment of this news? Please choose an answer from {negative/neutral/positive}.\nInput: Teollisuuden Voima Oyj , the Finnish utility known as TVO , said it shortlisted Mitsubishi Heavy s EU-APWR model along with reactors from Areva , Toshiba Corp. , GE Hitachi Nuclear Energy and Korea Hydro & Nuclear Power Co. .\nAnswer: "
+        ]
 
         prompt_ids = tokenizer.encode(tmp_context[0], bos=False, eos=False)
-        # prompt_ids.extend([32000] * (128 - max(prompt_ids)))
+        # prompt_ids.extend([2] * (256 - max(prompt_ids)))
         prompt_ids = torch.tensor([prompt_ids], dtype=torch.long).to("cuda")
 
         # tokens = tokenizer(tmp_context, return_tensors="pt", padding=True, max_length=512)
         # for k in tokens.keys():
         #     tokens[k] = tokens[k].cuda()
         with torch.no_grad():
-            res = model.generate(prompt_ids, max_new_tokens=100, temperature=1.0, top_k=300)
+            res = model.generate(prompt_ids, max_new_tokens=100, temperature=0.0, top_k=300)
         res_sentences = [tokenizer.decode(i) for i in res.tolist()]
         out_text = [o.split("Answer: ")[1] for o in res_sentences]
         out_text_list += out_text

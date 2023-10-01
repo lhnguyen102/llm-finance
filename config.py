@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class NetworkConfig:
-    """Network properties for Llama 7B model"""
+    """Network properties for llama model"""
 
     model_type: str = "llama2_custom"
     dim: int = 288
@@ -73,7 +73,7 @@ class FinetuningModelConfig:
 
     dataset_name: str = ""
     out_dir: str = "out"
-    eval_interval: int = 500
+    eval_interval: int = 200
     log_interval: int = 1
     eval_iters: int = 100
     eval_only: bool = False
@@ -103,7 +103,7 @@ class FinetuningModelConfig:
     lora_rank: int = 8
     lora_alpha: int = 4.0
     lora_dropout: int = 0.1
-    lora_tie_embedding_weights: bool = True
+    lora_tie_embedding_weights: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
