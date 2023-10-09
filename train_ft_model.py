@@ -61,7 +61,7 @@ def train(dataset_name: str):
 def benchmark(dataset_name: str) -> None:
     """Benchmark"""
     # Cuda setup
-    torch.manual_seed(1337)
+    # torch.manual_seed(1337)
     torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
     torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 

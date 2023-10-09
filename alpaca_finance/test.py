@@ -11,6 +11,13 @@ def format_example(example: dict) -> dict:
     return {"context": context, "target": target}
 
 
+def extract_until_two(nums):
+    try:
+        return nums[: nums.index(2) + 1]
+    except ValueError:
+        return nums
+
+
 def test_qna(model, tokenizer, batch_size=1):
     device_type = "cuda"
     ptdtype = torch.float16
@@ -22,8 +29,10 @@ def test_qna(model, tokenizer, batch_size=1):
     prompt_ids = torch.tensor([prompt_ids], dtype=torch.long).to("cuda")
 
     with torch.no_grad():
-        res = model.generate(prompt_ids, max_new_tokens=300, temperature=1.0, top_k=300)
-    res_sentences = [tokenizer.decode(i) for i in res.tolist()]
+        res = model.generate_with_topp(prompt_ids, max_new_tokens=300, temperature=1.0, top_p=0.9)
+
+    res = extract_until_two(res[0].tolist())
+    res_sentences = tokenizer.decode(res)
     out_text = [o.split("Answer: ")[1] for o in res_sentences]
     out_text_list += out_text
     torch.cuda.empty_cache()

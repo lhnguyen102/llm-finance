@@ -341,6 +341,61 @@ class LLAMANet(nn.Module):
         return idx
 
     @torch.inference_mode()
+    def generate_with_topp(
+        self, idx: torch.Tensor, max_new_tokens, temperature=1.0, top_p=0.9
+    ) -> torch.Tensor:
+        """"""
+
+        for _ in range(max_new_tokens):
+            # Crop the token inputs beyond the token limits
+            idx_cond = (
+                idx if idx.size(1) <= self.cfg.max_seq_len else idx[:, -self.cfg.max_seq_len :]
+            )
+
+            # Get the logits for the final step only
+            logits = self(idx_cond)
+            logits = logits[:, -1, :]
+
+            if temperature == 0.0:
+                _, idx_next = torch.topk(logits, k=1, dim=-1)
+            else:
+                # pluck the logits at the final step and scale by desired temperature
+                logits = torch.clamp(logits, min=-20, max=20)
+                logits = logits / temperature
+
+                # Apply softmax to convert logits to (normalized) probabilities
+                probs = nn.functional.softmax(logits, dim=-1)
+
+                # Sort the probabilities
+                sorted_probs, _ = torch.sort(probs, descending=True, dim=-1)
+
+                # Calculate the cumulative probabilities
+                cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+
+                # Remove tokens with cumulative probability above the threshold
+                removed_tokens = cumulative_probs > top_p
+
+                # Shift the mask to the right to keep the top-token for the final results
+                removed_tokens[..., 1:] = removed_tokens[..., :-1].clone()
+                removed_tokens[..., 0] = 0
+
+                # Create a mask of zero values with the same shape as removed_tokens
+                zero_mask = torch.where(removed_tokens, 0.0, 1.0)
+
+                # Apply the mask to set unwanted probabilities to zero
+                probs *= zero_mask
+
+                probs /= probs.sum(dim=-1, keepdim=True)
+
+                # Sample from the remaining tokens
+                idx_next = torch.multinomial(probs, num_samples=1)
+
+            # Append sampled index to the running sequence and continue
+            idx = torch.cat((idx, idx_next), dim=1)
+
+        return idx
+
+    @torch.inference_mode()
     def compute_probs(self, idx: torch.Tensor, temperature=1.0, top_k=None) -> torch.Tensor:
         """Compute the probabilies for each token in vocab given the input tokens"""
         # Crop the token inputs beyond the token limits

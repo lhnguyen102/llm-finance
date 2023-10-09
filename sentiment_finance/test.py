@@ -74,9 +74,6 @@ def test_fpb(model, tokenizer, batch_size=1, prompt_fun=None):
     out_text_list = []
     for i in tqdm(range(total_steps)):
         tmp_context = context[i * batch_size : (i + 1) * batch_size]
-        tmp_context = [
-            "Instruction: What is the sentiment of this news? Please choose an answer from {negative/neutral/positive}.\nInput: Teollisuuden Voima Oyj , the Finnish utility known as TVO , said it shortlisted Mitsubishi Heavy s EU-APWR model along with reactors from Areva , Toshiba Corp. , GE Hitachi Nuclear Energy and Korea Hydro & Nuclear Power Co. .\nAnswer: "
-        ]
 
         prompt_ids = tokenizer.encode(tmp_context[0], bos=False, eos=False)
         # prompt_ids.extend([2] * (256 - max(prompt_ids)))

@@ -15,7 +15,7 @@ class NetworkConfig:
     hidden_dim: Optional[int] = None
     multiple_of: int = 32
     norm_eps: float = 1e-5
-    max_seq_len: int = 256
+    max_seq_len: int = 320
     dropout: float = 0.0
     padding_idx: int = 32000
     loss_ignore_index: int = -1
@@ -35,7 +35,7 @@ class ModelConfig:
     out_dir: str = "out"
     eval_interval: int = 1000
     log_interval: int = 1
-    eval_iters: int = 200
+    eval_iters: int = 100
     eval_only: bool = False
     always_save_checkpoint: bool = False
     init_from: str = "scratch"  # scratch, resume
@@ -85,13 +85,13 @@ class FinetuningModelConfig:
     gradient_accumulation_steps: float = 8
     learning_rate: float = 5e-4
     min_lr: float = 0.0
-    max_iters: int = 100_000
-    weight_decay: float = 1e-1
+    max_iters: int = 20_000
+    weight_decay: float = 1e-2
     beta1: float = 0.9
     beta2: float = 0.95
     grad_clip: float = 1.0
     decay_lr: bool = True
-    warmup_iters: int = 1000
+    warmup_iters: int = 100
     device: str = "cuda"
     dtype: int = "float16"
     compile: bool = True
@@ -100,9 +100,9 @@ class FinetuningModelConfig:
     optim_method: str = "8bit"
 
     # Lora config
-    lora_rank: int = 8
-    lora_alpha: int = 4.0
-    lora_dropout: int = 0.1
+    lora_rank: int = 16
+    lora_alpha: int = 8.0
+    lora_dropout: int = 0.05
     lora_tie_embedding_weights: bool = False
 
     def to_dict(self) -> dict:

@@ -435,7 +435,7 @@ class FinetuningModel:
 
         # Select optimizer
         if self.cfg.optim_method == "8bit":
-            optimizer = bnb.optim.Adam8bit(
+            optimizer = bnb.optim.AdamW8bit(
                 optim_groups, lr=self.cfg.learning_rate, betas=(self.cfg.beta1, self.cfg.beta2)
             )
         else:
