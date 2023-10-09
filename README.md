@@ -18,20 +18,20 @@ All models, from base to fine-tuned, are built from scratch, so you can see how 
 ## Directory Structure
 ```shell
 .
-├── alpaca_finance      # Preprocess Alpaca's QnA dataset
-├── config.py           # Configuration for model and network
-├── finetune_dataset.py # Dataset and dataloader for the fine-tuning task
-├── finetune_model.py   # Fine-tuning model
-├── Makefile            # Compiling instruction for C code
-├── model.py            # Base model
-├── run.c               # C code for forward pass
-├── sentiment_finance   # Preprocess the news data for sentiment analyis
-├── tinystories.py      # Tiny Stories to train base model
-├── tokenizer.bin       # Vocabulary encoder-decoder in binary (C code)
-├── tokenizer.model     # Vocabulary encoder-decoder (python code)
-├── tokenizer.py        # Script for encoding and decoding text and token IDs
-├── train_base_model.py # Training runner for the base model
-└── train_ft_model.py   # Training runner for the fine-tuning model
+├── alpaca_finance          # Preprocess Alpaca's QnA dataset
+├── config.py               # Configuration for model and network
+├── finetune_dataset.py     # Dataset and dataloader for the fine-tuning task
+├── finetune_model.py       # Fine-tuning model
+├── Makefile                # Compiling instruction for C code
+├── model.py                # Base model
+├── run.c                   # C code for forward pass
+├── sentiment_finance       # Preprocess the news data for sentiment analyis
+├── tinystories.py          # Tiny Stories to train base model
+├── tokenizer.bin           # Vocabulary encoder-decoder in binary (C code)
+├── tokenizer.model         # Vocabulary encoder-decoder (python code)
+├── tokenizer.py            # Script for encoding and decoding text and token IDs
+├── train_base_model.py     # Training runner for the base model
+└── train_ft_model.py       # Training runner for the fine-tuning model
 ```
 
 ## Installation
@@ -98,12 +98,12 @@ NOTE: you can also use the Makefile to compile the C code if preferred.
 ### Fine-tuning Model
 For fine-tuning, we use HuggingFace's LoRA approach to extract layers but have implemented our own custom optimizer for our custom model. In the future, we plan to implement our minimal version for LoRA approach. Run the following command for fine-tuning model for sentiment analysis
 ```shell
-python train_ft_model.py news
+python train_ft_model.py --task training --dataset_name news
 ```
 
 Run the following command for fine-tuning model for questions and anwsers
 ```shell
-python train_ft_model.py alpaca
+python train_ft_model.py alpaca --task training --dataset_name alpaca
 ```
 
 ## Model Testing

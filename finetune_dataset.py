@@ -22,7 +22,9 @@ def data_collator(
         labels = feature["labels"]
 
         # Add padding to labels
-        tmp_labels = labels + [pad_token_id] * (max_len - len(labels))
+        tmp_labels = (
+            [pad_token_id] * len(ids) + labels + [pad_token_id] * (max_len - len(labels) - len(ids))
+        )
         tmp_labels = [loss_ignore_index if x == pad_token_id else x for x in tmp_labels]
 
         # Add padding to inputs

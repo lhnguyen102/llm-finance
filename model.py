@@ -175,8 +175,7 @@ class MLPBlock(nn.Module):
 
     def __init__(self, cfg: NetworkConfig) -> None:
         super().__init__()
-        hidden_dim = cfg.dim
-        if hidden_dim is None:
+        if cfg.hidden_dim is None:
             hidden_dim = 4 * cfg.dim
             hidden_dim = int(2 * hidden_dim / 3)
             hidden_dim = cfg.multiple_of * ((hidden_dim + cfg.multiple_of - 1) // cfg.multiple_of)
@@ -227,7 +226,9 @@ class LLAMANet(nn.Module):
         super().__init__()
         self.cfg = cfg
 
-        self.tok_embeddings = nn.Embedding(cfg.vocab_size, cfg.dim, padding_idx=32000)
+        self.tok_embeddings = nn.Embedding(
+            cfg.vocab_size, cfg.dim, padding_idx=self.cfg.padding_idx
+        )
         self.dropout = nn.Dropout(cfg.dropout)
         self.transformer_layers = torch.nn.ModuleList()
 
@@ -238,8 +239,8 @@ class LLAMANet(nn.Module):
         self.output = nn.Linear(cfg.dim, cfg.vocab_size, bias=False)
 
         # Share the unembedding parameters with the embedding parameters
-        # https://paperswithcode.com/method/weight-tying
-        self.tok_embeddings.weight = self.output.weight
+        # # https://paperswithcode.com/method/weight-tying
+        # self.tok_embeddings.weight = self.output.weight
 
         # Positional embeddings
         freqs_cos, freqs_sin = precompute_freqs_cis(cfg.dim // cfg.n_heads, cfg.max_seq_len)
@@ -251,7 +252,7 @@ class LLAMANet(nn.Module):
 
         # Register hook to freeze the gradient for padding_idx
         if self.tok_embeddings.padding_idx is not None:
-            self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
+            # self.output.weight.register_hook(lambda grad: self.gradient_mask_hook(grad))
             self.padding_idx = self.tok_embeddings.padding_idx
             with torch.no_grad():
                 self.tok_embeddings.weight[self.tok_embeddings.padding_idx].fill_(0.0)
@@ -335,6 +336,61 @@ class LLAMANet(nn.Module):
                 idx_next = torch.multinomial(probs, num_samples=1)
 
             # append sampled index to the running sequence and continue
+            idx = torch.cat((idx, idx_next), dim=1)
+
+        return idx
+
+    @torch.inference_mode()
+    def generate_with_topp(
+        self, idx: torch.Tensor, max_new_tokens, temperature=1.0, top_p=0.9
+    ) -> torch.Tensor:
+        """"""
+
+        for _ in range(max_new_tokens):
+            # Crop the token inputs beyond the token limits
+            idx_cond = (
+                idx if idx.size(1) <= self.cfg.max_seq_len else idx[:, -self.cfg.max_seq_len :]
+            )
+
+            # Get the logits for the final step only
+            logits = self(idx_cond)
+            logits = logits[:, -1, :]
+
+            if temperature == 0.0:
+                _, idx_next = torch.topk(logits, k=1, dim=-1)
+            else:
+                # pluck the logits at the final step and scale by desired temperature
+                logits = torch.clamp(logits, min=-20, max=20)
+                logits = logits / temperature
+
+                # Apply softmax to convert logits to (normalized) probabilities
+                probs = nn.functional.softmax(logits, dim=-1)
+
+                # Sort the probabilities
+                sorted_probs, _ = torch.sort(probs, descending=True, dim=-1)
+
+                # Calculate the cumulative probabilities
+                cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+
+                # Remove tokens with cumulative probability above the threshold
+                removed_tokens = cumulative_probs > top_p
+
+                # Shift the mask to the right to keep the top-token for the final results
+                removed_tokens[..., 1:] = removed_tokens[..., :-1].clone()
+                removed_tokens[..., 0] = 0
+
+                # Create a mask of zero values with the same shape as removed_tokens
+                zero_mask = torch.where(removed_tokens, 0.0, 1.0)
+
+                # Apply the mask to set unwanted probabilities to zero
+                probs *= zero_mask
+
+                probs /= probs.sum(dim=-1, keepdim=True)
+
+                # Sample from the remaining tokens
+                idx_next = torch.multinomial(probs, num_samples=1)
+
+            # Append sampled index to the running sequence and continue
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
@@ -521,7 +577,7 @@ class LLAMAModel:
         with torch.no_grad():
             with self.ctx:
                 for k in range(1):
-                    y = self.llama_net.generate(x, 256, temperature=1.4, top_k=1000)
+                    y = self.llama_net.generate(x, 128, temperature=1.0, top_k=300)
                     print(enc.decode(y[0].tolist()))
                     print("---------------")
 
