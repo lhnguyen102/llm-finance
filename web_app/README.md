@@ -10,7 +10,7 @@ Navigate to the `client` and `server` directories and run `npm install` in each 
 Use the command `cd client` to switch to the client directory, and `cd ../server` to switch to the server directory.
 
 ## Runner
-1. Copy trained model (`model.bin`) and binary file (`run.o`) to `web_app` folder
+1. Copy trained model (`model.bin`) and binary file (`run.o`) to `web_app/server` folder
 2. Open two terminals to run the client and server separately. 
 
 In the first terminal for the client, run:
