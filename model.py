@@ -458,7 +458,7 @@ class LLAMAModel:
 
         return iter_num, best_val_loss, optimizer_dict
 
-    def train(self, dataloader: Callable) -> None:
+    def train(self, dataloader: Callable, tokenizer=None) -> None:
         """Traing step"""
 
         # Initialize model
@@ -474,6 +474,8 @@ class LLAMAModel:
 
         # Fetch the very first batch
         X, Y = next(train_dataloader)
+        # input_txt = tokenizer.decode(X[0, :1].tolist())
+        # output_txt = tokenizer.decode(Y[0, :].tolist())
 
         # Initialize a GradScaler. If enabled=False scaler is a no-op
         scaler = torch.cuda.amp.GradScaler(enabled=(self.cfg_model.dtype == "float16"))

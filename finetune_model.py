@@ -44,10 +44,14 @@ class LoraLinear(nn.Module):
         self.dropout = nn.Dropout(dropout_p)
 
     def forward(self, weight):
-        return weight + torch.matmul(self.lora_b, self.dropout(self.lora_a)) * self.scaling
+        return (
+            weight + torch.matmul(self.lora_b, self.dropout(self.lora_a)) * self.scaling
+        )
 
 
-def apply_lora(model: nn.Module, layer_types=[nn.Linear], rank=8, dropout=0.0, alpha=1.0):
+def apply_lora(
+    model: nn.Module, layer_types=[nn.Linear], rank=8, dropout=0.0, alpha=1.0
+):
     def _apply_lora(module):
         if type(module) in layer_types and hasattr(module, "weight"):
             fan_out, fan_in = module.weight.shape
@@ -71,9 +75,11 @@ class FinetuningModel:
     def __init__(self, cfg: FinetuningModelConfig) -> None:
         self.cfg = cfg
         device_type = "cuda" if "cuda" in cfg.device else "cpu"
-        ptdtype = {"float32": torch.float32, "bfloat16": torch.bfloat16, "float16": torch.float16}[
-            cfg.dtype
-        ]
+        ptdtype = {
+            "float32": torch.float32,
+            "bfloat16": torch.bfloat16,
+            "float16": torch.float16,
+        }[cfg.dtype]
         self.ctx = (
             nullcontext()
             if cfg.device == "cpu"
@@ -134,7 +140,9 @@ class FinetuningModel:
             # Clip the gradient
             if self.cfg.grad_clip != 0.0:
                 scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(self.peft_net.parameters(), self.cfg.grad_clip)
+                torch.nn.utils.clip_grad_norm_(
+                    self.peft_net.parameters(), self.cfg.grad_clip
+                )
 
             # Step the optimizer and scaler if training in fp16
             scaler.step(optimizer)
@@ -207,7 +215,9 @@ class FinetuningModel:
                     print(enc.decode(y[0].tolist()))
                     print("---------------")
 
-    def get_sentiment_analysis(self, prompts: Union[List[int], List[str]]) -> Dict[str, float]:
+    def get_sentiment_analysis(
+        self, prompts: Union[List[int], List[str]]
+    ) -> Dict[str, float]:
         """Get the probabilities for the following sentiment: positive, negative, and neural"""
 
         # Load the model
@@ -234,16 +244,20 @@ class FinetuningModel:
             for prompt in prompts:
                 prompt_id = enc.encode(prompt, bos=True, eos=False)
                 prompt_ids.append(prompt_id)
-            prompt_ids = torch.tensor(prompt_ids, dtype=torch.long, device=self.cfg.device)[
-                None, ...
-            ]
+            prompt_ids = torch.tensor(
+                prompt_ids, dtype=torch.long, device=self.cfg.device
+            )[None, ...]
         else:
-            prompt_ids = torch.tensor(prompts, dtype=torch.long, device=self.cfg.device)[None, ...]
+            prompt_ids = torch.tensor(
+                prompts, dtype=torch.long, device=self.cfg.device
+            )[None, ...]
 
         # Run generation
         with torch.no_grad():
             with self.ctx:
-                token_probs = peft_net.compute_probs(prompt_ids, temperature=1.0, top_k=300)
+                token_probs = peft_net.compute_probs(
+                    prompt_ids, temperature=1.0, top_k=300
+                )
 
         # Get probabilities for each type of sentiment
         sentiment_probs = {}
@@ -264,11 +278,15 @@ class FinetuningModel:
         """Save model adapter including the parameters optimized for the finetuning"""
         os.makedirs(self.cfg.out_dir, exist_ok=True)
         saved_params = {
-            k: v.to("cpu") for k, v in self.peft_net.named_parameters() if v.requires_grad
+            k: v.to("cpu")
+            for k, v in self.peft_net.named_parameters()
+            if v.requires_grad
         }
         torch.save(
             saved_params,
-            os.path.join(self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"),
+            os.path.join(
+                self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"
+            ),
         )
 
     def get_lora_finetune_model(self) -> PeftModel:
@@ -320,7 +338,9 @@ class FinetuningModel:
         )
         peft_net = get_peft_model(pretrained_net, lora_config)
         peft_saved_params = torch.load(
-            os.path.join(self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"),
+            os.path.join(
+                self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"
+            ),
             map_location=self.cfg.device,
         )
 
@@ -339,7 +359,9 @@ class FinetuningModel:
 
         # Load checkpoint
         peft_saved_params = torch.load(
-            os.path.join(self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"),
+            os.path.join(
+                self.cfg.out_dir, f"adapter_model_{self.cfg.dataset_name}.bin"
+            ),
             map_location=self.cfg.device,
         )
 
@@ -412,7 +434,9 @@ class FinetuningModel:
         """Define the optimizers"""
         # Get all parameters
         param_dict = {
-            name: value for name, value in self.peft_net.named_parameters() if value.requires_grad
+            name: value
+            for name, value in self.peft_net.named_parameters()
+            if value.requires_grad
         }
 
         # Select the ones to be decayed
@@ -436,7 +460,9 @@ class FinetuningModel:
         # Select optimizer
         if self.cfg.optim_method == "8bit":
             optimizer = bnb.optim.AdamW8bit(
-                optim_groups, lr=self.cfg.learning_rate, betas=(self.cfg.beta1, self.cfg.beta2)
+                optim_groups,
+                lr=self.cfg.learning_rate,
+                betas=(self.cfg.beta1, self.cfg.beta2),
             )
         else:
             fused_avail = "fused" in inspect.signature(torch.optim.AdamW).parameters
