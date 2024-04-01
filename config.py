@@ -40,9 +40,9 @@ class ModelConfig:
     always_save_checkpoint: bool = False
     init_from: str = "scratch"  # scratch, resume
 
-    batch_size: int = 32
+    batch_size: int = 64
     vocab_source: str = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-    gradient_accumulation_steps: float = 8
+    gradient_accumulation_steps: float = 4
     learning_rate: float = 5e-4
     min_lr: float = 0.0
     max_iters: int = 100_000

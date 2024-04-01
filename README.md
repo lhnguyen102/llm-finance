@@ -7,6 +7,10 @@ This project is only for educational and learning purposes, focusing on guiding 
 - [ ] **Performance Benchmarks (WIP)**: Evaluate the model's effectiveness in sentiment analysis and QnA tasks.
 - [ ] **User Interface (WIP)**: An interactive platform to test the model on sentiment analysis and QnA tasks.
 
+<p align="center">
+  <img src="./figure/chat_ui.gif" width="1000px" height="300px" >
+</p>
+
 
 The code for training based model are mostly from the repository [llama2.c](https://github.com/karpathy/llama2.c) by Andrej Karpathy. His repository stands as a masterclass of educational content in AI development. Highly recommended for all learners. Here are some main modifications
 - Restructured the training code

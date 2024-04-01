@@ -5,6 +5,7 @@ from tinystories import Task
 import torch
 import os
 import fire
+from tokenizer import Tokenizer
 
 
 def main(task: str):
@@ -30,9 +31,10 @@ def main(task: str):
     )
 
     # Model
+    tokenizer_model = Tokenizer("tokenizer.model")
     model = LLAMAModel(cfg_model=cfg_model, cfg_net=cfg_net)
     if task == "training":
-        model.train(dataloader)
+        model.train(dataloader, tokenizer_model)
     elif task == "test":
         model.sample()
     else:
